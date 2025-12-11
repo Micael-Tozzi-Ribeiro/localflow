@@ -87,8 +87,8 @@ const MyStores = () => {
   };
 
   const handleCreateStore = async () => {
-    if (!storeForm.name || !storeForm.category || !storeForm.phone || !storeForm.address) {
-      toast({ title: "Preencha todos os campos obrigatórios", variant: "destructive" });
+    if (!storeForm.name || !storeForm.category || !storeForm.phone || !storeForm.address || !storeForm.logoFile || !storeForm.bannerFile) {
+      toast({ title: "Preencha todos os campos obrigatórios, incluindo logo e banner", variant: "destructive" });
       return;
     }
 
@@ -214,7 +214,7 @@ const MyStores = () => {
                 
                 {/* Logo Upload */}
                 <div className="space-y-2">
-                  <Label>Logo da Loja</Label>
+                  <Label>Logo da Loja *</Label>
                   <input
                     ref={logoInputRef}
                     type="file"
@@ -239,7 +239,7 @@ const MyStores = () => {
 
                 {/* Banner Upload */}
                 <div className="space-y-2">
-                  <Label>Banner da Loja</Label>
+                  <Label>Banner da Loja *</Label>
                   <input
                     ref={bannerInputRef}
                     type="file"
