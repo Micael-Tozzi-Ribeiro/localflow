@@ -121,9 +121,9 @@ const Cart = () => {
       clearCart();
       toast({ 
         title: "Pedidos enviados!", 
-        description: `${storeIds.length} pedido(s) criado(s) com sucesso`
+        description: `${storeIds.length} pedido(s) criado(s) com sucesso. Acompanhe seus pedidos!`
       });
-      navigate('/conta');
+      navigate('/meus-pedidos');
     } catch (error: any) {
       toast({ 
         title: "Erro ao finalizar pedido", 
