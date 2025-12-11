@@ -291,17 +291,40 @@ const MerchantOrders = () => {
 
                   {/* Actions */}
                   <div className="flex flex-wrap gap-2 pt-4 border-t border-border">
+                    {/* Cancel order button - always visible except for completed/cancelled */}
+                    {order.status !== 'completed' && order.status !== 'cancelled' && (
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="destructive" size="sm" className="gap-2">
+                            <XCircle className="h-4 w-4" />
+                            Cancelar Pedido
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Cancelar pedido?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Isso irá cancelar o pedido completamente. Esta ação não pode ser desfeita.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Voltar</AlertDialogCancel>
+                            <AlertDialogAction 
+                              onClick={() => handleCancelOrder(order.id)} 
+                              className="bg-destructive hover:bg-destructive/90"
+                            >
+                              Cancelar Pedido
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    )}
+                    
                     {order.status === 'pending' && (
-                      <>
-                        <Button onClick={() => handleConfirmOrder(order.id)} className="gap-2">
-                          <CheckCircle className="h-4 w-4" />
-                          Confirmar Pedido
-                        </Button>
-                        <Button variant="destructive" onClick={() => handleCancelOrder(order.id)} className="gap-2">
-                          <XCircle className="h-4 w-4" />
-                          Cancelar
-                        </Button>
-                      </>
+                      <Button onClick={() => handleConfirmOrder(order.id)} className="gap-2">
+                        <CheckCircle className="h-4 w-4" />
+                        Confirmar Pedido
+                      </Button>
                     )}
                     {order.status === 'confirmed' && order.delivery_type === 'delivery' && (
                       <Button onClick={() => handleRequestDelivery(order)} className="gap-2" variant="secondary">
