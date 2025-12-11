@@ -296,6 +296,37 @@ export function useOrders() {
     }
   };
 
+  const cancelDeliveryRequest = async (orderId: string) => {
+    try {
+      // Delete the delivery request
+      const { error: deleteError } = await supabase
+        .from('delivery_requests')
+        .delete()
+        .eq('order_id', orderId);
+
+      if (deleteError) throw deleteError;
+
+      // Update order status back to confirmed
+      const { error: updateError } = await supabase
+        .from('orders')
+        .update({ status: 'confirmed' })
+        .eq('id', orderId);
+
+      if (updateError) throw updateError;
+
+      setOrders(prev => prev.map(o => 
+        o.id === orderId 
+          ? { ...o, status: 'confirmed', delivery_request: undefined } 
+          : o
+      ));
+
+      return { error: null };
+    } catch (error: any) {
+      console.error('Error canceling delivery request:', error);
+      return { error: error.message };
+    }
+  };
+
   useEffect(() => {
     if (user) {
       fetchMerchantOrders();
@@ -310,6 +341,7 @@ export function useOrders() {
     requestDelivery,
     deleteCompletedOrders,
     confirmPickup,
+    cancelDeliveryRequest,
     refetchOrders: fetchMerchantOrders
   };
 }

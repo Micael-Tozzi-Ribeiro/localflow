@@ -35,8 +35,26 @@ import {
 const MerchantOrders = () => {
   const navigate = useNavigate();
   const { user, profile, isLoading: authLoading } = useAuth();
-  const { orders, isLoading, updateOrderStatus, requestDelivery, deleteCompletedOrders, confirmPickup, refetchOrders } = useOrders();
+  const { orders, isLoading, updateOrderStatus, requestDelivery, deleteCompletedOrders, confirmPickup, cancelDeliveryRequest, refetchOrders } = useOrders();
   const { toast } = useToast();
+
+  const formatPhoneForWhatsApp = (phone: string) => {
+    // Remove all non-numeric characters
+    const cleaned = phone.replace(/\D/g, '');
+    // Add Brazil country code if not present
+    if (cleaned.startsWith('55')) {
+      return cleaned;
+    }
+    return `55${cleaned}`;
+  };
+
+  const openWhatsApp = (phone: string, message?: string) => {
+    const formattedPhone = formatPhoneForWhatsApp(phone);
+    const url = message 
+      ? `https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`
+      : `https://wa.me/${formattedPhone}`;
+    window.open(url, '_blank');
+  };
 
   if (!authLoading && (!user || profile?.user_type !== 'comerciante')) {
     navigate('/auth');
@@ -144,6 +162,16 @@ const MerchantOrders = () => {
     }
   };
 
+  const handleCancelDeliveryRequest = async (orderId: string) => {
+    const { error } = await cancelDeliveryRequest(orderId);
+    if (error) {
+      toast({ title: "Erro", description: error, variant: "destructive" });
+    } else {
+      toast({ title: "Solicitação de entrega cancelada", description: "Você pode solicitar novamente quando quiser" });
+      refetchOrders();
+    }
+  };
+
   const completedOrdersCount = orders.filter(o => o.status === 'completed' || o.status === 'cancelled').length;
 
   if (authLoading || isLoading) {
@@ -222,10 +250,14 @@ const MerchantOrders = () => {
                       <User className="h-4 w-4 text-muted-foreground" />
                       <span className="text-sm text-foreground">{order.customer_name}</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Phone className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm text-foreground">{order.customer_phone}</span>
-                    </div>
+                    <button 
+                      onClick={() => openWhatsApp(order.customer_phone, `Olá ${order.customer_name}! Aqui é da loja ${order.store?.name}.`)}
+                      className="flex items-center gap-2 hover:bg-primary/10 rounded-md p-1 -m-1 transition-colors text-left"
+                      title="Abrir WhatsApp"
+                    >
+                      <Phone className="h-4 w-4 text-green-600" />
+                      <span className="text-sm text-primary underline underline-offset-2">{order.customer_phone}</span>
+                    </button>
                     {order.customer_address && (
                       <div className="flex items-center gap-2 sm:col-span-2">
                         <MapPin className="h-4 w-4 text-muted-foreground" />
@@ -284,10 +316,37 @@ const MerchantOrders = () => {
                       </Button>
                     )}
                     {order.status === 'awaiting_delivery' && order.delivery_request?.status === 'pending' && (
-                      <Badge variant="outline" className="py-2 px-4">
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Aguardando entregador aceitar
-                      </Badge>
+                      <div className="flex flex-wrap items-center gap-3">
+                        <Badge variant="outline" className="py-2 px-4">
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Aguardando entregador aceitar
+                        </Badge>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="outline" size="sm" className="gap-2 text-destructive hover:text-destructive">
+                              <XCircle className="h-4 w-4" />
+                              Cancelar Entrega
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Cancelar solicitação de entrega?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Isso irá cancelar a solicitação de entrega. Você poderá solicitar novamente depois.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Voltar</AlertDialogCancel>
+                              <AlertDialogAction 
+                                onClick={() => handleCancelDeliveryRequest(order.id)} 
+                                className="bg-destructive hover:bg-destructive/90"
+                              >
+                                Cancelar Entrega
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
                     )}
                     {order.status === 'awaiting_delivery' && order.delivery_request?.status === 'accepted' && order.delivery_request?.delivery_person && (
                       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full">
@@ -306,11 +365,39 @@ const MerchantOrders = () => {
                         </Button>
                       </div>
                     )}
-                    {order.status === 'in_delivery' && (
-                      <Badge variant="secondary" className="py-2 px-4 bg-blue-500/10 text-blue-600 border-blue-500/30">
-                        <Truck className="h-4 w-4 mr-2" />
-                        Pedido saiu para entrega
-                      </Badge>
+                    {order.status === 'in_delivery' && order.delivery_request?.delivery_person && (
+                      <div className="flex items-center gap-2 p-3 bg-blue-500/10 rounded-lg">
+                        <Truck className="h-5 w-5 text-blue-600" />
+                        <div>
+                          <p className="text-sm font-medium text-foreground">
+                            Pedido saiu para entrega
+                          </p>
+                          <button 
+                            onClick={() => order.delivery_request?.delivery_person?.phone && openWhatsApp(order.delivery_request.delivery_person.phone, `Olá ${order.delivery_request.delivery_person.name}!`)}
+                            className="text-xs text-primary underline underline-offset-2 hover:text-primary/80 transition-colors"
+                            title="Abrir WhatsApp do entregador"
+                          >
+                            Entregador: {order.delivery_request.delivery_person.name}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                    {order.status === 'completed' && order.delivery_type === 'delivery' && order.delivery_request?.delivery_person && (
+                      <div className="flex items-center gap-2 p-3 bg-green-500/10 rounded-lg">
+                        <CheckCircle className="h-5 w-5 text-green-600" />
+                        <div>
+                          <p className="text-sm font-medium text-foreground">
+                            Pedido entregue
+                          </p>
+                          <button 
+                            onClick={() => order.delivery_request?.delivery_person?.phone && openWhatsApp(order.delivery_request.delivery_person.phone, `Olá ${order.delivery_request.delivery_person.name}!`)}
+                            className="text-xs text-primary underline underline-offset-2 hover:text-primary/80 transition-colors"
+                            title="Abrir WhatsApp do entregador"
+                          >
+                            Entregue por: {order.delivery_request.delivery_person.name}
+                          </button>
+                        </div>
+                      </div>
                     )}
                   </div>
                 </CardContent>
