@@ -24,6 +24,7 @@ export type Database = {
           id: string
           notes: string | null
           order_id: string | null
+          rejected_by: string[] | null
           status: string
           store_id: string
           updated_at: string
@@ -37,6 +38,7 @@ export type Database = {
           id?: string
           notes?: string | null
           order_id?: string | null
+          rejected_by?: string[] | null
           status?: string
           store_id: string
           updated_at?: string
@@ -50,6 +52,7 @@ export type Database = {
           id?: string
           notes?: string | null
           order_id?: string | null
+          rejected_by?: string[] | null
           status?: string
           store_id?: string
           updated_at?: string
