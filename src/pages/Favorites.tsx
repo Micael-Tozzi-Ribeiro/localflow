@@ -1,14 +1,19 @@
 import { Link } from 'react-router-dom';
 import { Layout } from '@/components/layout/Layout';
 import { StoreCard } from '@/components/stores/StoreCard';
-import { useApp } from '@/contexts/AppContext';
+import { useAuth } from '@/hooks/useAuth';
+import { useStores } from '@/hooks/useStores';
+import { useFavorites } from '@/hooks/useFavorites';
 import { Button } from '@/components/ui/button';
 import { Heart } from 'lucide-react';
 
 const Favorites = () => {
-  const { user, stores } = useApp();
+  const { user } = useAuth();
+  const { stores, isLoading: storesLoading } = useStores();
+  const { favorites, isLoading: favoritesLoading } = useFavorites();
   
-  const favoriteStores = stores.filter(s => user?.favorites.includes(s.id));
+  const favoriteStores = stores.filter(s => favorites.includes(s.id));
+  const isLoading = storesLoading || favoritesLoading;
 
   if (!user) {
     return (
@@ -19,6 +24,16 @@ const Favorites = () => {
           <Link to="/auth">
             <Button>Entrar</Button>
           </Link>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <Layout>
+        <div className="container px-4 py-16 text-center">
+          <div className="animate-pulse text-muted-foreground">Carregando...</div>
         </div>
       </Layout>
     );
@@ -40,7 +55,19 @@ const Favorites = () => {
                 className="animate-fade-in-up"
                 style={{ animationDelay: `${index * 0.05}s` }}
               >
-                <StoreCard store={store} />
+                <StoreCard store={{
+                  id: store.id,
+                  ownerId: store.owner_id,
+                  name: store.name,
+                  category: store.category,
+                  description: store.description || '',
+                  phone: store.phone,
+                  address: store.address,
+                  state: store.state,
+                  neighborhood: store.neighborhood,
+                  logo: store.logo_url || '',
+                  banner: store.banner_url || '',
+                }} />
               </div>
             ))}
           </div>
