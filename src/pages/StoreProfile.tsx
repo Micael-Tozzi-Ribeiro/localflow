@@ -1,8 +1,9 @@
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, MapPin, Phone, Heart, Truck, Store as StoreIcon, ImageIcon } from 'lucide-react';
+import { ArrowLeft, MapPin, Phone, Heart, Store as StoreIcon, ImageIcon } from 'lucide-react';
 import { Layout } from '@/components/layout/Layout';
 import { useAuth } from '@/hooks/useAuth';
 import { useStores } from '@/hooks/useStores';
+import { useFavorites } from '@/hooks/useFavorites';
 import { useApp } from '@/contexts/AppContext';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -14,13 +15,14 @@ const StoreProfile = () => {
   const navigate = useNavigate();
   const { user, profile } = useAuth();
   const { stores, getStoreProducts, isLoading } = useStores();
-  const { toggleFavorite, addToCart } = useApp();
+  const { toggleFavorite, isFavorite } = useFavorites();
+  const { addToCart } = useApp();
   const { toast } = useToast();
 
   const store = stores.find(s => s.id === id);
   const storeProducts = getStoreProducts(id || '');
-  const isFavorite = false; // TODO: Implement from database
-  const isOwner = profile?.user_id === store?.owner_id;
+  const isStoreOwner = profile?.user_id === store?.owner_id;
+  const storeFavorite = store ? isFavorite(store.id) : false;
 
   if (isLoading) {
     return (
@@ -73,6 +75,15 @@ const StoreProfile = () => {
     toast({ title: "Produto adicionado ao carrinho!" });
   };
 
+  const handleToggleFavorite = async () => {
+    if (!user) {
+      toast({ title: "Faça login para favoritar", variant: "destructive" });
+      return;
+    }
+    await toggleFavorite(store.id);
+    toast({ title: storeFavorite ? "Removido dos favoritos" : "Adicionado aos favoritos!" });
+  };
+
   return (
     <Layout>
       {/* Banner */}
@@ -99,17 +110,17 @@ const StoreProfile = () => {
         </Button>
 
         {/* Favorite Button */}
-        {user && !isOwner && (
+        {user && !isStoreOwner && (
           <Button
             variant="ghost"
             size="icon"
             className={cn(
               "absolute top-4 right-4 bg-background/80 backdrop-blur-sm hover:bg-background",
-              isFavorite && "text-destructive"
+              storeFavorite && "text-destructive"
             )}
-            onClick={() => toggleFavorite(store.id)}
+            onClick={handleToggleFavorite}
           >
-            <Heart className={cn("h-5 w-5", isFavorite && "fill-current")} />
+            <Heart className={cn("h-5 w-5", storeFavorite && "fill-current")} />
           </Button>
         )}
       </div>
@@ -160,7 +171,7 @@ const StoreProfile = () => {
               </p>
             </div>
             
-            {profile?.user_type === 'comerciante' && isOwner && (
+            {profile?.user_type === 'comerciante' && isStoreOwner && (
               <Link to="/minhas-lojas">
                 <Button className="gap-2">
                   <StoreIcon className="h-4 w-4" />
@@ -207,7 +218,7 @@ const StoreProfile = () => {
                       <span className="text-lg font-bold text-primary">
                         {Number(product.price).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                       </span>
-                      {user && !isOwner && (
+                      {user && !isStoreOwner && (
                         <Button size="sm" onClick={() => handleAddToCart(product)}>
                           Adicionar
                         </Button>

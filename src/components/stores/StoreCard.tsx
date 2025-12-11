@@ -1,29 +1,36 @@
 import { Link } from 'react-router-dom';
 import { Heart, MapPin, Store as StoreIcon } from 'lucide-react';
 import { Store } from '@/types';
-import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/hooks/useAuth';
+import { useFavorites } from '@/hooks/useFavorites';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
 
 interface StoreCardProps {
   store: Store;
 }
 
 export function StoreCard({ store }: StoreCardProps) {
-  const { toggleFavorite } = useApp();
   const { user, profile } = useAuth();
+  const { isFavorite, toggleFavorite } = useFavorites();
+  const { toast } = useToast();
   
-  // For now, we'll use local state for favorites until we implement it in the database
-  const isFavorite = false; // TODO: Implement favorites from database
+  const isOwner = profile?.user_id === store.ownerId;
+  const storeFavorite = isFavorite(store.id);
 
-  const handleFavoriteClick = (e: React.MouseEvent) => {
+  const handleFavoriteClick = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (user) {
-      toggleFavorite(store.id);
+    
+    if (!user) {
+      toast({ title: "Faça login para favoritar", variant: "destructive" });
+      return;
     }
+    
+    await toggleFavorite(store.id);
+    toast({ title: storeFavorite ? "Removido dos favoritos" : "Adicionado aos favoritos!" });
   };
 
   return (
@@ -43,17 +50,17 @@ export function StoreCard({ store }: StoreCardProps) {
           <div className="absolute inset-0 bg-gradient-to-t from-foreground/60 to-transparent" />
           
           {/* Favorite Button */}
-          {user && (
+          {user && !isOwner && (
             <Button
               variant="ghost"
               size="icon"
               className={cn(
                 "absolute top-3 right-3 h-9 w-9 rounded-full bg-background/80 backdrop-blur-sm hover:bg-background",
-                isFavorite && "text-destructive"
+                storeFavorite && "text-destructive"
               )}
               onClick={handleFavoriteClick}
             >
-              <Heart className={cn("h-5 w-5", isFavorite && "fill-current")} />
+              <Heart className={cn("h-5 w-5", storeFavorite && "fill-current")} />
             </Button>
           )}
         </div>
