@@ -13,6 +13,7 @@ export interface DeliveryRequest {
   customer_address: string;
   status: string;
   notes: string | null;
+  rejected_by: string[] | null;
   created_at: string;
   updated_at: string;
   store?: {
@@ -59,8 +60,13 @@ export function useDeliveryRequests() {
         if (req.delivery_person_id === user.id) return true;
         
         // For pending requests, show only those in the same region
+        // AND not rejected by this delivery person
         if (req.status === 'pending' && profile.user_type === 'entregador') {
-          return req.store?.neighborhood === profile.neighborhood && 
+          const rejectedByList = req.rejected_by || [];
+          const wasRejectedByMe = rejectedByList.includes(user.id);
+          
+          return !wasRejectedByMe && 
+                 req.store?.neighborhood === profile.neighborhood && 
                  req.store?.state === profile.state;
         }
         
@@ -118,15 +124,24 @@ export function useDeliveryRequests() {
   };
 
   const rejectDelivery = async (requestId: string) => {
+    if (!user) return { error: 'Usuário não autenticado' };
+
     try {
+      // Get current rejected_by list
+      const request = deliveryRequests.find(r => r.id === requestId);
+      const currentRejectedBy = request?.rejected_by || [];
+      
+      // Add current user to rejected_by list
+      const newRejectedBy = [...currentRejectedBy, user.id];
+
       const { error } = await supabase
         .from('delivery_requests')
-        .update({ status: 'rejected' })
+        .update({ rejected_by: newRejectedBy })
         .eq('id', requestId);
 
       if (error) throw error;
 
-      // Remove from local state since it's no longer pending
+      // Remove from local state since this user rejected it
       setDeliveryRequests(prev => prev.filter(req => req.id !== requestId));
 
       return { error: null };
