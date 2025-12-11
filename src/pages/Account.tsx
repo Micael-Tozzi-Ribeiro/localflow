@@ -1,31 +1,47 @@
 import { useNavigate, Link } from 'react-router-dom';
 import { Layout } from '@/components/layout/Layout';
-import { useApp } from '@/contexts/AppContext';
+import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { User, MapPin, Phone, Mail, LogOut, Heart, ShoppingCart, Store, Truck } from 'lucide-react';
+import { useEffect } from 'react';
 
 const Account = () => {
   const navigate = useNavigate();
-  const { user, setUser } = useApp();
+  const { user, profile, isLoading, signOut } = useAuth();
 
-  if (!user) {
-    navigate('/auth');
+  useEffect(() => {
+    if (!isLoading && !user) {
+      navigate('/auth');
+    }
+  }, [isLoading, user, navigate]);
+
+  if (isLoading) {
+    return (
+      <Layout>
+        <div className="container px-4 py-8 flex items-center justify-center min-h-[50vh]">
+          <div className="animate-pulse text-muted-foreground">Carregando...</div>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (!user || !profile) {
     return null;
   }
 
-  const handleLogout = () => {
-    setUser(null);
+  const handleLogout = async () => {
+    await signOut();
     navigate('/');
   };
 
   const userTypeLabels = {
-    usuario: { label: 'Morador', color: 'bg-primary', icon: User },
+    morador: { label: 'Morador', color: 'bg-primary', icon: User },
     comerciante: { label: 'Comerciante', color: 'bg-secondary', icon: Store },
     entregador: { label: 'Entregador', color: 'bg-accent-foreground', icon: Truck },
   };
 
-  const typeInfo = userTypeLabels[user.userType];
+  const typeInfo = userTypeLabels[profile.user_type];
 
   return (
     <Layout>
@@ -36,7 +52,7 @@ const Account = () => {
             <div className="w-24 h-24 rounded-full gradient-primary flex items-center justify-center mx-auto mb-4">
               <User className="h-12 w-12 text-primary-foreground" />
             </div>
-            <h1 className="text-2xl md:text-3xl font-bold text-foreground">{user.name}</h1>
+            <h1 className="text-2xl md:text-3xl font-bold text-foreground">{profile.name}</h1>
             <Badge className={`mt-2 ${typeInfo.color}`}>
               <typeInfo.icon className="h-3 w-3 mr-1" />
               {typeInfo.label}
@@ -49,15 +65,17 @@ const Account = () => {
             <div className="space-y-4">
               <div className="flex items-center gap-3">
                 <Mail className="h-5 w-5 text-muted-foreground" />
-                <span className="text-foreground">{user.email}</span>
+                <span className="text-foreground">{profile.email}</span>
               </div>
-              <div className="flex items-center gap-3">
-                <Phone className="h-5 w-5 text-muted-foreground" />
-                <span className="text-foreground">{user.phone}</span>
-              </div>
+              {profile.phone && (
+                <div className="flex items-center gap-3">
+                  <Phone className="h-5 w-5 text-muted-foreground" />
+                  <span className="text-foreground">{profile.phone}</span>
+                </div>
+              )}
               <div className="flex items-center gap-3">
                 <MapPin className="h-5 w-5 text-muted-foreground" />
-                <span className="text-foreground">{user.neighborhood}, {user.state}</span>
+                <span className="text-foreground">{profile.neighborhood}, {profile.state}</span>
               </div>
             </div>
           </div>
@@ -78,7 +96,7 @@ const Account = () => {
                   Carrinho
                 </Button>
               </Link>
-              {user.userType === 'comerciante' && (
+              {profile.user_type === 'comerciante' && (
                 <Link to="/minhas-lojas" className="col-span-2">
                   <Button variant="outline" className="w-full justify-start gap-2">
                     <Store className="h-4 w-4" />
@@ -86,7 +104,7 @@ const Account = () => {
                   </Button>
                 </Link>
               )}
-              {user.userType === 'entregador' && (
+              {profile.user_type === 'entregador' && (
                 <Link to="/entregas" className="col-span-2">
                   <Button variant="outline" className="w-full justify-start gap-2">
                     <Truck className="h-4 w-4" />

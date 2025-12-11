@@ -1,7 +1,8 @@
 import { Link } from 'react-router-dom';
-import { Heart, MapPin, Phone } from 'lucide-react';
+import { Heart, MapPin, Store as StoreIcon } from 'lucide-react';
 import { Store } from '@/types';
 import { useApp } from '@/contexts/AppContext';
+import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -11,8 +12,11 @@ interface StoreCardProps {
 }
 
 export function StoreCard({ store }: StoreCardProps) {
-  const { user, toggleFavorite } = useApp();
-  const isFavorite = user?.favorites.includes(store.id);
+  const { toggleFavorite } = useApp();
+  const { user, profile } = useAuth();
+  
+  // For now, we'll use local state for favorites until we implement it in the database
+  const isFavorite = false; // TODO: Implement favorites from database
 
   const handleFavoriteClick = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -27,11 +31,15 @@ export function StoreCard({ store }: StoreCardProps) {
       <div className="relative bg-card rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
         {/* Banner */}
         <div className="relative h-36 overflow-hidden">
-          <img
-            src={store.banner}
-            alt={`Banner ${store.name}`}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-          />
+          {store.banner ? (
+            <img
+              src={store.banner}
+              alt={`Banner ${store.name}`}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-r from-primary/20 to-secondary/20 group-hover:scale-105 transition-transform duration-500" />
+          )}
           <div className="absolute inset-0 bg-gradient-to-t from-foreground/60 to-transparent" />
           
           {/* Favorite Button */}
@@ -55,11 +63,17 @@ export function StoreCard({ store }: StoreCardProps) {
           {/* Logo */}
           <div className="absolute -top-8 left-4">
             <div className="w-16 h-16 rounded-xl overflow-hidden border-4 border-background shadow-lg">
-              <img
-                src={store.logo}
-                alt={`Logo ${store.name}`}
-                className="w-full h-full object-cover"
-              />
+              {store.logo ? (
+                <img
+                  src={store.logo}
+                  alt={`Logo ${store.name}`}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full bg-primary/10 flex items-center justify-center">
+                  <StoreIcon className="h-6 w-6 text-primary" />
+                </div>
+              )}
             </div>
           </div>
 
