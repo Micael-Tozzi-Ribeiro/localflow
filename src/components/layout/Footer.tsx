@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Facebook, Instagram, Twitter, Mail, Phone, MapPin } from 'lucide-react';
-import logo from '@/assets/logo-localflow.png';
+import { Facebook, Instagram, Twitter, Mail, Phone, MapPin, MapPinned, Link2, Home, Info, Store, User, Bot, Headphones } from 'lucide-react';
 
 export function Footer() {
   const currentYear = new Date().getFullYear();
@@ -11,7 +10,10 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {/* Column 1 - Brand */}
           <div className="space-y-4">
-            <img src={logo} alt="LocalFlow" className="h-10 w-auto brightness-0 invert" />
+            <div className="flex items-center gap-2">
+              <MapPinned className="h-8 w-8 text-secondary" />
+              <span className="text-2xl font-bold">LocalFlow</span>
+            </div>
             <p className="text-sm text-muted opacity-80">
               Conectando moradores, comerciantes e entregadores do seu bairro. 
               Fortaleça a economia local e incentive o fluxo regional.
@@ -20,30 +22,38 @@ export function Footer() {
 
           {/* Column 2 - Quick Links */}
           <div>
-            <h4 className="font-semibold text-lg mb-4">Links Rápidos</h4>
+            <h4 className="font-semibold text-lg mb-4 flex items-center gap-2">
+              <Link2 className="h-5 w-5 text-secondary" />
+              Links Rápidos
+            </h4>
             <ul className="space-y-2">
               <li>
-                <Link to="/" className="text-sm text-muted hover:text-secondary transition-colors">
+                <Link to="/" className="flex items-center gap-2 text-sm text-muted hover:text-secondary transition-colors">
+                  <Home className="h-4 w-4 text-secondary" />
                   Início
                 </Link>
               </li>
               <li>
-                <Link to="/sobre" className="text-sm text-muted hover:text-secondary transition-colors">
+                <Link to="/sobre" className="flex items-center gap-2 text-sm text-muted hover:text-secondary transition-colors">
+                  <Info className="h-4 w-4 text-secondary" />
                   Sobre Nós
                 </Link>
               </li>
               <li>
-                <Link to="/lojas" className="text-sm text-muted hover:text-secondary transition-colors">
+                <Link to="/lojas" className="flex items-center gap-2 text-sm text-muted hover:text-secondary transition-colors">
+                  <Store className="h-4 w-4 text-secondary" />
                   Lojas
                 </Link>
               </li>
               <li>
-                <Link to="/conta" className="text-sm text-muted hover:text-secondary transition-colors">
+                <Link to="/conta" className="flex items-center gap-2 text-sm text-muted hover:text-secondary transition-colors">
+                  <User className="h-4 w-4 text-secondary" />
                   Minha Conta
                 </Link>
               </li>
               <li>
-                <Link to="/assistente" className="text-sm text-muted hover:text-secondary transition-colors">
+                <Link to="/assistente" className="flex items-center gap-2 text-sm text-muted hover:text-secondary transition-colors">
+                  <Bot className="h-4 w-4 text-secondary" />
                   Assistente IA
                 </Link>
               </li>
@@ -80,7 +90,10 @@ export function Footer() {
 
           {/* Column 4 - Contact */}
           <div>
-            <h4 className="font-semibold text-lg mb-4">Suporte</h4>
+            <h4 className="font-semibold text-lg mb-4 flex items-center gap-2">
+              <Headphones className="h-5 w-5 text-secondary" />
+              Suporte
+            </h4>
             <ul className="space-y-3">
               <li className="flex items-center gap-2 text-sm text-muted">
                 <Mail className="h-4 w-4 text-secondary" />
