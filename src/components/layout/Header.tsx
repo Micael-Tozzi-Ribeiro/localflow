@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Menu, X, ShoppingCart, User, Heart, Store, Truck, Bot, LogOut, Package } from 'lucide-react';
+import { Menu, X, ShoppingCart, User, Heart, Store, Truck, Bot, LogOut, Package, ClipboardList } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useApp } from '@/contexts/AppContext';
@@ -54,6 +54,11 @@ export function Header() {
         <div className="hidden md:flex items-center gap-3">
           {user && profile && (
             <>
+              <Link to="/meus-pedidos">
+                <Button variant="ghost" size="icon" title="Meus Pedidos">
+                  <ClipboardList className="h-5 w-5" />
+                </Button>
+              </Link>
               <Link to="/favoritos" className="relative">
                 <Button variant="ghost" size="icon">
                   <Heart className="h-5 w-5" />
@@ -145,6 +150,14 @@ export function Header() {
             <div className="border-t border-border my-2" />
             {user && profile && (
               <>
+                <Link
+                  to="/meus-pedidos"
+                  className="flex items-center gap-2 rounded-lg px-4 py-3 text-sm font-medium text-foreground hover:bg-muted transition-colors"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  <ClipboardList className="h-4 w-4" />
+                  Meus Pedidos
+                </Link>
                 <Link
                   to="/favoritos"
                   className="flex items-center gap-2 rounded-lg px-4 py-3 text-sm font-medium text-foreground hover:bg-muted transition-colors"
