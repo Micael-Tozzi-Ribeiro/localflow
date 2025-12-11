@@ -15,6 +15,7 @@ import Cart from "./pages/Cart";
 import Favorites from "./pages/Favorites";
 import MyStores from "./pages/MyStores";
 import MerchantOrders from "./pages/MerchantOrders";
+import MyOrders from "./pages/MyOrders";
 import DeliveryPanel from "./pages/DeliveryPanel";
 import AIAssistant from "./pages/AIAssistant";
 import NotFound from "./pages/NotFound";
@@ -40,6 +41,7 @@ const App = () => (
               <Route path="/favoritos" element={<Favorites />} />
               <Route path="/minhas-lojas" element={<MyStores />} />
               <Route path="/pedidos" element={<MerchantOrders />} />
+              <Route path="/meus-pedidos" element={<MyOrders />} />
               <Route path="/entregas" element={<DeliveryPanel />} />
               <Route path="/assistente" element={<AIAssistant />} />
               <Route path="*" element={<NotFound />} />
