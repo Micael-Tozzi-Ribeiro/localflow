@@ -1,20 +1,22 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Layout } from '@/components/layout/Layout';
-import { useApp } from '@/contexts/AppContext';
+import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { UserType, BRAZILIAN_STATES } from '@/types';
+import { BRAZILIAN_STATES } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { User, Store, Truck } from 'lucide-react';
 import logo from '@/assets/logo-localflow.png';
 
+type UserType = 'morador' | 'comerciante' | 'entregador';
+
 const Auth = () => {
   const navigate = useNavigate();
-  const { setUser } = useApp();
+  const { user, profile, signIn, signUp } = useAuth();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
 
@@ -29,37 +31,49 @@ const Auth = () => {
     phone: '',
     state: '',
     neighborhood: '',
-    userType: 'usuario' as UserType,
+    userType: 'morador' as UserType,
     password: '',
     confirmPassword: '',
   });
 
   const userTypeOptions = [
-    { value: 'usuario', label: 'Morador', icon: User, color: 'bg-primary' },
+    { value: 'morador', label: 'Morador', icon: User, color: 'bg-primary' },
     { value: 'comerciante', label: 'Comerciante', icon: Store, color: 'bg-secondary' },
     { value: 'entregador', label: 'Entregador', icon: Truck, color: 'bg-accent-foreground' },
   ];
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (user && profile) {
+      if (profile.user_type === 'comerciante') {
+        navigate('/minhas-lojas');
+      } else if (profile.user_type === 'entregador') {
+        navigate('/entregas');
+      } else {
+        navigate('/lojas');
+      }
+    }
+  }, [user, profile, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
-    // Simulate login - in production this would call an API
-    setTimeout(() => {
-      setUser({
-        id: Date.now().toString(),
-        name: 'Usuário Demo',
-        email: loginEmail,
-        phone: '(11) 99999-9999',
-        state: 'SP',
-        neighborhood: 'Centro',
-        userType: 'usuario',
-        favorites: [],
+    const { error } = await signIn(loginEmail, loginPassword);
+    
+    if (error) {
+      toast({ 
+        title: "Erro ao entrar", 
+        description: error.message === 'Invalid login credentials' 
+          ? 'Email ou senha incorretos' 
+          : error.message,
+        variant: "destructive" 
       });
+    } else {
       toast({ title: "Login realizado com sucesso!" });
-      navigate('/');
-      setIsLoading(false);
-    }, 1000);
+    }
+    
+    setIsLoading(false);
   };
 
   const handleRegister = async (e: React.FormEvent) => {
@@ -70,6 +84,11 @@ const Auth = () => {
       return;
     }
     
+    if (registerData.password.length < 6) {
+      toast({ title: "A senha deve ter pelo menos 6 caracteres", variant: "destructive" });
+      return;
+    }
+    
     if (!registerData.state || !registerData.neighborhood) {
       toast({ title: "Preencha seu estado e bairro", variant: "destructive" });
       return;
@@ -77,29 +96,25 @@ const Auth = () => {
 
     setIsLoading(true);
     
-    // Simulate registration - in production this would call an API
-    setTimeout(() => {
-      setUser({
-        id: Date.now().toString(),
-        name: registerData.name,
-        email: registerData.email,
-        phone: registerData.phone,
-        state: registerData.state,
-        neighborhood: registerData.neighborhood,
-        userType: registerData.userType,
-        favorites: [],
-      });
-      toast({ title: "Cadastro realizado com sucesso!" });
-      
-      if (registerData.userType === 'comerciante') {
-        navigate('/minhas-lojas');
-      } else if (registerData.userType === 'entregador') {
-        navigate('/entregas');
+    const { error } = await signUp(registerData.email, registerData.password, {
+      name: registerData.name,
+      phone: registerData.phone,
+      state: registerData.state,
+      neighborhood: registerData.neighborhood,
+      user_type: registerData.userType,
+    });
+    
+    if (error) {
+      if (error.message?.includes('already registered')) {
+        toast({ title: "Este email já está cadastrado", variant: "destructive" });
       } else {
-        navigate('/lojas');
+        toast({ title: "Erro ao cadastrar", description: error.message, variant: "destructive" });
       }
-      setIsLoading(false);
-    }, 1000);
+    } else {
+      toast({ title: "Cadastro realizado com sucesso!" });
+    }
+    
+    setIsLoading(false);
   };
 
   return (

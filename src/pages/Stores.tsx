@@ -2,19 +2,19 @@ import { useState, useMemo } from 'react';
 import { Search, Filter, MapPin } from 'lucide-react';
 import { Layout } from '@/components/layout/Layout';
 import { StoreCard } from '@/components/stores/StoreCard';
-import { useApp } from '@/contexts/AppContext';
+import { useAuth } from '@/hooks/useAuth';
+import { useStores } from '@/hooks/useStores';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const Stores = () => {
-  const { stores, user } = useApp();
+  const { profile } = useAuth();
+  const { stores, getStoresByRegion, isLoading } = useStores();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
   // Filter stores based on user's region
-  const regionalStores = user 
-    ? stores.filter(s => s.state === user.state && s.neighborhood === user.neighborhood)
-    : stores;
+  const regionalStores = profile ? getStoresByRegion() : stores;
 
   // Get unique categories from regional stores
   const categories = useMemo(() => {
@@ -33,6 +33,21 @@ const Stores = () => {
     });
   }, [regionalStores, searchQuery, selectedCategory]);
 
+  // Convert DbStore to legacy Store format for StoreCard
+  const convertedStores = filteredStores.map(store => ({
+    id: store.id,
+    ownerId: store.owner_id,
+    name: store.name,
+    category: store.category,
+    description: store.description || '',
+    phone: store.phone,
+    address: store.address,
+    state: store.state,
+    neighborhood: store.neighborhood,
+    logo: store.logo_url || '',
+    banner: store.banner_url || '',
+  }));
+
   return (
     <Layout>
       {/* Header */}
@@ -41,10 +56,10 @@ const Stores = () => {
           <h1 className="text-3xl md:text-4xl font-extrabold text-primary-foreground text-center animate-fade-in">
             Lojas do Bairro
           </h1>
-          {user && (
+          {profile && (
             <p className="mt-3 text-center text-primary-foreground/80 flex items-center justify-center gap-2 animate-fade-in" style={{ animationDelay: '0.1s' }}>
               <MapPin className="h-4 w-4" />
-              {user.neighborhood}, {user.state}
+              {profile.neighborhood}, {profile.state}
             </p>
           )}
         </div>
@@ -82,13 +97,17 @@ const Stores = () => {
       {/* Stores Grid */}
       <section className="py-8 md:py-12">
         <div className="container px-4">
-          {filteredStores.length > 0 ? (
+          {isLoading ? (
+            <div className="text-center py-16">
+              <div className="animate-pulse text-muted-foreground">Carregando lojas...</div>
+            </div>
+          ) : filteredStores.length > 0 ? (
             <>
               <p className="text-sm text-muted-foreground mb-6">
                 {filteredStores.length} loja{filteredStores.length !== 1 ? 's' : ''} encontrada{filteredStores.length !== 1 ? 's' : ''}
               </p>
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {filteredStores.map((store, index) => (
+                {convertedStores.map((store, index) => (
                   <div 
                     key={store.id} 
                     className="animate-fade-in-up"
@@ -104,7 +123,7 @@ const Stores = () => {
               <MapPin className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
               <h3 className="text-xl font-semibold text-foreground mb-2">Nenhuma loja encontrada</h3>
               <p className="text-muted-foreground max-w-md mx-auto">
-                {user 
+                {profile 
                   ? 'Não encontramos lojas correspondentes à sua busca no seu bairro. Tente outros filtros.'
                   : 'Faça login para ver as lojas do seu bairro ou explore nossa plataforma.'}
               </p>

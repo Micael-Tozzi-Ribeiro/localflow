@@ -1,24 +1,32 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Layout } from '@/components/layout/Layout';
-import { useApp } from '@/contexts/AppContext';
+import { useAuth } from '@/hooks/useAuth';
+import { useStores } from '@/hooks/useStores';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Store, Plus, Edit, Package, Image, Truck } from 'lucide-react';
-import { STORE_CATEGORIES, Product } from '@/types';
+import { Store, Plus, Edit, Package, Upload, Truck, ImageIcon } from 'lucide-react';
+import { STORE_CATEGORIES } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 
 const MyStores = () => {
   const navigate = useNavigate();
-  const { user, stores, setStores, products, setProducts, addDeliveryRequest } = useApp();
+  const { user, profile, isLoading: authLoading } = useAuth();
+  const { getMyStores, getStoreProducts, createStore, createProduct, isLoading: storesLoading } = useStores();
   const { toast } = useToast();
   const [isStoreDialogOpen, setIsStoreDialogOpen] = useState(false);
   const [isProductDialogOpen, setIsProductDialogOpen] = useState(false);
   const [selectedStoreId, setSelectedStoreId] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // File refs
+  const logoInputRef = useRef<HTMLInputElement>(null);
+  const bannerInputRef = useRef<HTMLInputElement>(null);
+  const productImageRef = useRef<HTMLInputElement>(null);
 
   const [storeForm, setStoreForm] = useState({
     name: '',
@@ -26,78 +34,113 @@ const MyStores = () => {
     phone: '',
     address: '',
     description: '',
-    logo: '',
-    banner: '',
+    logoFile: null as File | null,
+    bannerFile: null as File | null,
+    logoPreview: '',
+    bannerPreview: '',
   });
 
   const [productForm, setProductForm] = useState({
     name: '',
     price: '',
     description: '',
-    photo: '',
+    imageFile: null as File | null,
+    imagePreview: '',
   });
 
-  if (!user || user.userType !== 'comerciante') {
+  // Redirect if not authenticated or not a merchant
+  if (!authLoading && (!user || profile?.user_type !== 'comerciante')) {
     navigate('/auth');
     return null;
   }
 
-  const myStores = stores.filter(s => s.ownerId === user.id);
+  if (authLoading || storesLoading) {
+    return (
+      <Layout>
+        <div className="container px-4 py-8 flex items-center justify-center min-h-[50vh]">
+          <div className="animate-pulse text-muted-foreground">Carregando...</div>
+        </div>
+      </Layout>
+    );
+  }
 
-  const handleCreateStore = () => {
-    const newStore = {
-      id: Date.now().toString(),
-      ownerId: user.id,
+  const myStores = getMyStores();
+
+  const handleFileSelect = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    type: 'logo' | 'banner' | 'product'
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (type === 'logo') {
+        setStoreForm(prev => ({ ...prev, logoFile: file, logoPreview: reader.result as string }));
+      } else if (type === 'banner') {
+        setStoreForm(prev => ({ ...prev, bannerFile: file, bannerPreview: reader.result as string }));
+      } else {
+        setProductForm(prev => ({ ...prev, imageFile: file, imagePreview: reader.result as string }));
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleCreateStore = async () => {
+    if (!storeForm.name || !storeForm.category || !storeForm.phone || !storeForm.address) {
+      toast({ title: "Preencha todos os campos obrigatórios", variant: "destructive" });
+      return;
+    }
+
+    setIsSubmitting(true);
+    
+    const { error } = await createStore({
       name: storeForm.name,
       category: storeForm.category,
       phone: storeForm.phone,
       address: storeForm.address,
       description: storeForm.description,
-      logo: storeForm.logo || 'https://images.unsplash.com/photo-1472851294608-062f824d29cc?w=100&h=100&fit=crop',
-      banner: storeForm.banner || 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=800&h=300&fit=crop',
-      state: user.state,
-      neighborhood: user.neighborhood,
-    };
+      logoFile: storeForm.logoFile || undefined,
+      bannerFile: storeForm.bannerFile || undefined,
+    });
+
+    if (error) {
+      toast({ title: "Erro ao criar loja", description: String(error), variant: "destructive" });
+    } else {
+      setIsStoreDialogOpen(false);
+      setStoreForm({ name: '', category: '', phone: '', address: '', description: '', logoFile: null, bannerFile: null, logoPreview: '', bannerPreview: '' });
+      toast({ title: "Loja criada com sucesso!" });
+    }
     
-    setStores(prev => [...prev, newStore]);
-    setIsStoreDialogOpen(false);
-    setStoreForm({ name: '', category: '', phone: '', address: '', description: '', logo: '', banner: '' });
-    toast({ title: "Loja criada com sucesso!" });
+    setIsSubmitting(false);
   };
 
-  const handleCreateProduct = () => {
-    if (!selectedStoreId) return;
+  const handleCreateProduct = async () => {
+    if (!selectedStoreId || !productForm.name || !productForm.price) {
+      toast({ title: "Preencha todos os campos obrigatórios", variant: "destructive" });
+      return;
+    }
+
+    setIsSubmitting(true);
     
-    const newProduct: Product = {
-      id: Date.now().toString(),
-      storeId: selectedStoreId,
+    const { error } = await createProduct({
+      store_id: selectedStoreId,
       name: productForm.name,
       price: parseFloat(productForm.price),
       description: productForm.description,
-      photo: productForm.photo || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=300&h=200&fit=crop',
-    };
+      imageFile: productForm.imageFile || undefined,
+    });
+
+    if (error) {
+      toast({ title: "Erro ao adicionar produto", description: String(error), variant: "destructive" });
+    } else {
+      setIsProductDialogOpen(false);
+      setProductForm({ name: '', price: '', description: '', imageFile: null, imagePreview: '' });
+      toast({ title: "Produto adicionado com sucesso!" });
+    }
     
-    setProducts(prev => [...prev, newProduct]);
-    setIsProductDialogOpen(false);
-    setProductForm({ name: '', price: '', description: '', photo: '' });
-    toast({ title: "Produto adicionado com sucesso!" });
+    setIsSubmitting(false);
   };
-
-  const handleRequestDelivery = (storeId: string, storeName: string) => {
-    addDeliveryRequest({
-      id: Date.now().toString(),
-      storeId,
-      storeName,
-      status: 'pending',
-      createdAt: new Date(),
-    });
-    toast({
-      title: "Entregador solicitado!",
-      description: "Entregadores da região foram notificados.",
-    });
-  };
-
-  const getStoreProducts = (storeId: string) => products.filter(p => p.storeId === storeId);
 
   return (
     <Layout>
@@ -121,7 +164,7 @@ const MyStores = () => {
               </DialogHeader>
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
-                  <Label>Nome da Loja</Label>
+                  <Label>Nome da Loja *</Label>
                   <Input
                     placeholder="Minha Loja"
                     value={storeForm.name}
@@ -129,7 +172,7 @@ const MyStores = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Categoria</Label>
+                  <Label>Categoria *</Label>
                   <Select
                     value={storeForm.category}
                     onValueChange={(value) => setStoreForm({ ...storeForm, category: value })}
@@ -145,7 +188,7 @@ const MyStores = () => {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Telefone</Label>
+                  <Label>Telefone *</Label>
                   <Input
                     placeholder="(11) 99999-9999"
                     value={storeForm.phone}
@@ -153,7 +196,7 @@ const MyStores = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Endereço</Label>
+                  <Label>Endereço *</Label>
                   <Input
                     placeholder="Rua das Flores, 123"
                     value={storeForm.address}
@@ -168,23 +211,60 @@ const MyStores = () => {
                     onChange={(e) => setStoreForm({ ...storeForm, description: e.target.value })}
                   />
                 </div>
+                
+                {/* Logo Upload */}
                 <div className="space-y-2">
-                  <Label>URL do Logo (opcional)</Label>
-                  <Input
-                    placeholder="https://..."
-                    value={storeForm.logo}
-                    onChange={(e) => setStoreForm({ ...storeForm, logo: e.target.value })}
+                  <Label>Logo da Loja</Label>
+                  <input
+                    ref={logoInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => handleFileSelect(e, 'logo')}
                   />
+                  <div 
+                    onClick={() => logoInputRef.current?.click()}
+                    className="border-2 border-dashed border-border rounded-xl p-4 cursor-pointer hover:border-primary/50 transition-colors"
+                  >
+                    {storeForm.logoPreview ? (
+                      <img src={storeForm.logoPreview} alt="Logo preview" className="w-20 h-20 object-cover rounded-lg mx-auto" />
+                    ) : (
+                      <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                        <Upload className="h-8 w-8" />
+                        <span className="text-sm">Clique para fazer upload do logo</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
+
+                {/* Banner Upload */}
                 <div className="space-y-2">
-                  <Label>URL do Banner (opcional)</Label>
-                  <Input
-                    placeholder="https://..."
-                    value={storeForm.banner}
-                    onChange={(e) => setStoreForm({ ...storeForm, banner: e.target.value })}
+                  <Label>Banner da Loja</Label>
+                  <input
+                    ref={bannerInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => handleFileSelect(e, 'banner')}
                   />
+                  <div 
+                    onClick={() => bannerInputRef.current?.click()}
+                    className="border-2 border-dashed border-border rounded-xl p-4 cursor-pointer hover:border-primary/50 transition-colors"
+                  >
+                    {storeForm.bannerPreview ? (
+                      <img src={storeForm.bannerPreview} alt="Banner preview" className="w-full h-24 object-cover rounded-lg" />
+                    ) : (
+                      <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                        <ImageIcon className="h-8 w-8" />
+                        <span className="text-sm">Clique para fazer upload do banner</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <Button onClick={handleCreateStore} className="w-full">Criar Loja</Button>
+
+                <Button onClick={handleCreateStore} className="w-full" disabled={isSubmitting}>
+                  {isSubmitting ? 'Criando...' : 'Criar Loja'}
+                </Button>
               </div>
             </DialogContent>
           </Dialog>
@@ -196,17 +276,27 @@ const MyStores = () => {
               <div key={store.id} className="bg-card rounded-2xl shadow-md overflow-hidden animate-fade-in">
                 {/* Store Header */}
                 <div className="relative h-32">
-                  <img src={store.banner} alt={store.name} className="w-full h-full object-cover" />
+                  {store.banner_url ? (
+                    <img src={store.banner_url} alt={store.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full bg-gradient-to-r from-primary/20 to-secondary/20" />
+                  )}
                   <div className="absolute inset-0 bg-gradient-to-t from-foreground/60 to-transparent" />
                 </div>
                 
                 <div className="p-6">
                   <div className="flex items-start gap-4 -mt-16 relative">
-                    <img
-                      src={store.logo}
-                      alt={store.name}
-                      className="w-20 h-20 rounded-xl border-4 border-background object-cover shadow-lg"
-                    />
+                    {store.logo_url ? (
+                      <img
+                        src={store.logo_url}
+                        alt={store.name}
+                        className="w-20 h-20 rounded-xl border-4 border-background object-cover shadow-lg"
+                      />
+                    ) : (
+                      <div className="w-20 h-20 rounded-xl border-4 border-background bg-primary/10 flex items-center justify-center shadow-lg">
+                        <Store className="h-8 w-8 text-primary" />
+                      </div>
+                    )}
                     <div className="pt-10 flex-1">
                       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                         <h2 className="text-xl font-bold text-card-foreground">{store.name}</h2>
@@ -217,15 +307,6 @@ const MyStores = () => {
                               Ver Loja
                             </Button>
                           </Link>
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            className="gap-1"
-                            onClick={() => handleRequestDelivery(store.id, store.name)}
-                          >
-                            <Truck className="h-4 w-4" />
-                            Entregador
-                          </Button>
                         </div>
                       </div>
                       <p className="text-sm text-muted-foreground mt-1">{store.category} • {store.address}</p>
@@ -255,7 +336,7 @@ const MyStores = () => {
                           </DialogHeader>
                           <div className="space-y-4 py-4">
                             <div className="space-y-2">
-                              <Label>Nome do Produto</Label>
+                              <Label>Nome do Produto *</Label>
                               <Input
                                 placeholder="Produto X"
                                 value={productForm.name}
@@ -263,7 +344,7 @@ const MyStores = () => {
                               />
                             </div>
                             <div className="space-y-2">
-                              <Label>Preço (R$)</Label>
+                              <Label>Preço (R$) *</Label>
                               <Input
                                 type="number"
                                 step="0.01"
@@ -280,15 +361,35 @@ const MyStores = () => {
                                 onChange={(e) => setProductForm({ ...productForm, description: e.target.value })}
                               />
                             </div>
+                            
+                            {/* Product Image Upload */}
                             <div className="space-y-2">
-                              <Label>URL da Foto (opcional)</Label>
-                              <Input
-                                placeholder="https://..."
-                                value={productForm.photo}
-                                onChange={(e) => setProductForm({ ...productForm, photo: e.target.value })}
+                              <Label>Foto do Produto</Label>
+                              <input
+                                ref={productImageRef}
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={(e) => handleFileSelect(e, 'product')}
                               />
+                              <div 
+                                onClick={() => productImageRef.current?.click()}
+                                className="border-2 border-dashed border-border rounded-xl p-4 cursor-pointer hover:border-primary/50 transition-colors"
+                              >
+                                {productForm.imagePreview ? (
+                                  <img src={productForm.imagePreview} alt="Product preview" className="w-full h-24 object-cover rounded-lg" />
+                                ) : (
+                                  <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                                    <Upload className="h-8 w-8" />
+                                    <span className="text-sm">Clique para fazer upload da foto</span>
+                                  </div>
+                                )}
+                              </div>
                             </div>
-                            <Button onClick={handleCreateProduct} className="w-full">Adicionar Produto</Button>
+
+                            <Button onClick={handleCreateProduct} className="w-full" disabled={isSubmitting}>
+                              {isSubmitting ? 'Adicionando...' : 'Adicionar Produto'}
+                            </Button>
                           </div>
                         </DialogContent>
                       </Dialog>
@@ -298,14 +399,20 @@ const MyStores = () => {
                       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                         {getStoreProducts(store.id).map((product) => (
                           <div key={product.id} className="bg-muted/30 rounded-lg p-3">
-                            <img
-                              src={product.photo}
-                              alt={product.name}
-                              className="w-full h-20 object-cover rounded-md mb-2"
-                            />
+                            {product.image_url ? (
+                              <img
+                                src={product.image_url}
+                                alt={product.name}
+                                className="w-full h-20 object-cover rounded-md mb-2"
+                              />
+                            ) : (
+                              <div className="w-full h-20 bg-muted rounded-md mb-2 flex items-center justify-center">
+                                <ImageIcon className="h-6 w-6 text-muted-foreground" />
+                              </div>
+                            )}
                             <p className="text-sm font-medium text-foreground truncate">{product.name}</p>
                             <p className="text-sm text-primary font-semibold">
-                              {product.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                              {Number(product.price).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                             </p>
                           </div>
                         ))}

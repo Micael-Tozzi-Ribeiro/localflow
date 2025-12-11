@@ -1,14 +1,16 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Menu, X, ShoppingCart, User, Heart, Store, Truck, Bot } from 'lucide-react';
+import { Menu, X, ShoppingCart, User, Heart, Store, Truck, Bot, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useApp } from '@/contexts/AppContext';
+import { useAuth } from '@/hooks/useAuth';
 import logo from '@/assets/logo-localflow.png';
 
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { user, cart, notifications } = useApp();
+  const { cart, notifications } = useApp();
+  const { user, profile, signOut } = useAuth();
   const navigate = useNavigate();
 
   const navItems = [
@@ -19,6 +21,12 @@ export function Header() {
   ];
 
   const cartItemsCount = cart.reduce((acc, item) => acc + item.quantity, 0);
+
+  const handleLogout = async () => {
+    await signOut();
+    navigate('/');
+    setIsMenuOpen(false);
+  };
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -44,7 +52,7 @@ export function Header() {
 
         {/* Desktop Actions */}
         <div className="hidden md:flex items-center gap-3">
-          {user && (
+          {user && profile && (
             <>
               <Link to="/favoritos" className="relative">
                 <Button variant="ghost" size="icon">
@@ -61,14 +69,14 @@ export function Header() {
                   )}
                 </Button>
               </Link>
-              {user.userType === 'comerciante' && (
+              {profile.user_type === 'comerciante' && (
                 <Link to="/minhas-lojas">
                   <Button variant="ghost" size="icon">
                     <Store className="h-5 w-5" />
                   </Button>
                 </Link>
               )}
-              {user.userType === 'entregador' && (
+              {profile.user_type === 'entregador' && (
                 <Link to="/entregas" className="relative">
                   <Button variant="ghost" size="icon">
                     <Truck className="h-5 w-5" />
@@ -82,13 +90,18 @@ export function Header() {
               )}
             </>
           )}
-          {user ? (
-            <Link to="/conta">
-              <Button variant="outline" size="sm" className="gap-2">
-                <User className="h-4 w-4" />
-                <span className="max-w-24 truncate">{user.name.split(' ')[0]}</span>
+          {user && profile ? (
+            <div className="flex items-center gap-2">
+              <Link to="/conta">
+                <Button variant="outline" size="sm" className="gap-2">
+                  <User className="h-4 w-4" />
+                  <span className="max-w-24 truncate">{profile.name.split(' ')[0]}</span>
+                </Button>
+              </Link>
+              <Button variant="ghost" size="icon" onClick={handleLogout} title="Sair">
+                <LogOut className="h-4 w-4" />
               </Button>
-            </Link>
+            </div>
           ) : (
             <Link to="/auth">
               <Button size="sm">Entrar</Button>
@@ -123,7 +136,7 @@ export function Header() {
               </Link>
             ))}
             <div className="border-t border-border my-2" />
-            {user && (
+            {user && profile && (
               <>
                 <Link
                   to="/favoritos"
@@ -144,7 +157,7 @@ export function Header() {
                     <Badge className="ml-auto">{cartItemsCount}</Badge>
                   )}
                 </Link>
-                {user.userType === 'comerciante' && (
+                {profile.user_type === 'comerciante' && (
                   <Link
                     to="/minhas-lojas"
                     className="flex items-center gap-2 rounded-lg px-4 py-3 text-sm font-medium text-foreground hover:bg-muted transition-colors"
@@ -154,7 +167,7 @@ export function Header() {
                     Minhas Lojas
                   </Link>
                 )}
-                {user.userType === 'entregador' && (
+                {profile.user_type === 'entregador' && (
                   <Link
                     to="/entregas"
                     className="flex items-center gap-2 rounded-lg px-4 py-3 text-sm font-medium text-foreground hover:bg-muted transition-colors"
@@ -169,15 +182,24 @@ export function Header() {
                 )}
               </>
             )}
-            {user ? (
-              <Link
-                to="/conta"
-                className="flex items-center gap-2 rounded-lg px-4 py-3 text-sm font-medium text-foreground hover:bg-muted transition-colors"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                <User className="h-4 w-4" />
-                Minha Conta
-              </Link>
+            {user && profile ? (
+              <>
+                <Link
+                  to="/conta"
+                  className="flex items-center gap-2 rounded-lg px-4 py-3 text-sm font-medium text-foreground hover:bg-muted transition-colors"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  <User className="h-4 w-4" />
+                  Minha Conta
+                </Link>
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center gap-2 rounded-lg px-4 py-3 text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors w-full text-left"
+                >
+                  <LogOut className="h-4 w-4" />
+                  Sair
+                </button>
+              </>
             ) : (
               <Link
                 to="/auth"
