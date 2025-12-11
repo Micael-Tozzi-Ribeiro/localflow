@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Menu, X, ShoppingCart, User, Heart, Store, Truck, Bot, LogOut } from 'lucide-react';
+import { Menu, X, ShoppingCart, User, Heart, Store, Truck, Bot, LogOut, Package } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useApp } from '@/contexts/AppContext';
@@ -70,11 +70,18 @@ export function Header() {
                 </Button>
               </Link>
               {profile.user_type === 'comerciante' && (
-                <Link to="/minhas-lojas">
-                  <Button variant="ghost" size="icon">
-                    <Store className="h-5 w-5" />
-                  </Button>
-                </Link>
+                <>
+                  <Link to="/minhas-lojas">
+                    <Button variant="ghost" size="icon" title="Minhas Lojas">
+                      <Store className="h-5 w-5" />
+                    </Button>
+                  </Link>
+                  <Link to="/pedidos">
+                    <Button variant="ghost" size="icon" title="Pedidos Recebidos">
+                      <Package className="h-5 w-5" />
+                    </Button>
+                  </Link>
+                </>
               )}
               {profile.user_type === 'entregador' && (
                 <Link to="/entregas" className="relative">
@@ -158,14 +165,24 @@ export function Header() {
                   )}
                 </Link>
                 {profile.user_type === 'comerciante' && (
-                  <Link
-                    to="/minhas-lojas"
-                    className="flex items-center gap-2 rounded-lg px-4 py-3 text-sm font-medium text-foreground hover:bg-muted transition-colors"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    <Store className="h-4 w-4" />
-                    Minhas Lojas
-                  </Link>
+                  <>
+                    <Link
+                      to="/minhas-lojas"
+                      className="flex items-center gap-2 rounded-lg px-4 py-3 text-sm font-medium text-foreground hover:bg-muted transition-colors"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      <Store className="h-4 w-4" />
+                      Minhas Lojas
+                    </Link>
+                    <Link
+                      to="/pedidos"
+                      className="flex items-center gap-2 rounded-lg px-4 py-3 text-sm font-medium text-foreground hover:bg-muted transition-colors"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      <Package className="h-4 w-4" />
+                      Pedidos Recebidos
+                    </Link>
+                  </>
                 )}
                 {profile.user_type === 'entregador' && (
                   <Link
