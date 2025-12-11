@@ -117,6 +117,25 @@ export function useDeliveryRequests() {
     }
   };
 
+  const rejectDelivery = async (requestId: string) => {
+    try {
+      const { error } = await supabase
+        .from('delivery_requests')
+        .update({ status: 'rejected' })
+        .eq('id', requestId);
+
+      if (error) throw error;
+
+      // Remove from local state since it's no longer pending
+      setDeliveryRequests(prev => prev.filter(req => req.id !== requestId));
+
+      return { error: null };
+    } catch (error: any) {
+      console.error('Error rejecting delivery:', error);
+      return { error: error.message };
+    }
+  };
+
   const updateDeliveryStatus = async (requestId: string, status: string) => {
     try {
       const { error } = await supabase
@@ -158,6 +177,7 @@ export function useDeliveryRequests() {
     deliveryRequests,
     isLoading,
     acceptDelivery,
+    rejectDelivery,
     updateDeliveryStatus,
     refetch: fetchDeliveryRequests
   };

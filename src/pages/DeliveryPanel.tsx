@@ -24,7 +24,7 @@ import { useToast } from '@/hooks/use-toast';
 const DeliveryPanel = () => {
   const navigate = useNavigate();
   const { user, profile, isLoading: authLoading } = useAuth();
-  const { deliveryRequests, isLoading, acceptDelivery, updateDeliveryStatus } = useDeliveryRequests();
+  const { deliveryRequests, isLoading, acceptDelivery, rejectDelivery, updateDeliveryStatus } = useDeliveryRequests();
   const { toast } = useToast();
 
   if (!authLoading && (!user || profile?.user_type !== 'entregador')) {
@@ -56,6 +56,15 @@ const DeliveryPanel = () => {
       toast({ title: "Erro", description: error, variant: "destructive" });
     } else {
       toast({ title: "Entrega aceita!", description: "Boa sorte na entrega!" });
+    }
+  };
+
+  const handleRejectDelivery = async (requestId: string) => {
+    const { error } = await rejectDelivery(requestId);
+    if (error) {
+      toast({ title: "Erro", description: error, variant: "destructive" });
+    } else {
+      toast({ title: "Entrega recusada", description: "A entrega foi removida da sua lista." });
     }
   };
 
@@ -158,6 +167,14 @@ const DeliveryPanel = () => {
                       </div>
 
                       <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          className="flex-1 gap-2 border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                          onClick={() => handleRejectDelivery(delivery.id)}
+                        >
+                          <XCircle className="h-4 w-4" />
+                          Recusar
+                        </Button>
                         <Button
                           className="flex-1 gap-2"
                           onClick={() => handleAcceptDelivery(delivery.id)}
