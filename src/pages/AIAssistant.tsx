@@ -261,13 +261,6 @@ Como posso ajudar você hoje?`,
           </div>
         </div>
 
-        {/* n8n Integration Note */}
-        <div className="mt-8 p-4 bg-muted/30 rounded-xl text-center">
-          <p className="text-sm text-muted-foreground">
-            💡 Este assistente está preparado para integração com <strong>n8n</strong>. 
-            Configure seu webhook para respostas personalizadas e automações avançadas.
-          </p>
-        </div>
       </div>
     </Layout>
   );
