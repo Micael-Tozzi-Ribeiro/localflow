@@ -248,6 +248,59 @@ export function useStores() {
     return { error };
   };
 
+  const updateProduct = async (
+    productId: string,
+    productData: {
+      name?: string;
+      price?: number;
+      description?: string;
+      imageFile?: File;
+    }
+  ) => {
+    if (!profile) return { error: 'Usuário não autenticado' };
+
+    const updateData: Record<string, unknown> = {};
+
+    if (productData.name) updateData.name = productData.name;
+    if (productData.price !== undefined) updateData.price = productData.price;
+    if (productData.description !== undefined) updateData.description = productData.description || null;
+
+    // Upload new image if provided
+    if (productData.imageFile) {
+      const imagePath = `${profile.user_id}/product-${Date.now()}`;
+      const image_url = await uploadImage(productData.imageFile, imagePath);
+      if (image_url) updateData.image_url = image_url;
+    }
+
+    const { data, error } = await supabase
+      .from('products')
+      .update(updateData)
+      .eq('id', productId)
+      .select()
+      .single();
+
+    if (!error && data) {
+      setProducts(prev => prev.map(p => p.id === productId ? data as DbProduct : p));
+    }
+
+    return { data, error };
+  };
+
+  const deleteProduct = async (productId: string) => {
+    if (!profile) return { error: 'Usuário não autenticado' };
+
+    const { error } = await supabase
+      .from('products')
+      .delete()
+      .eq('id', productId);
+
+    if (!error) {
+      setProducts(prev => prev.filter(p => p.id !== productId));
+    }
+
+    return { error };
+  };
+
   return {
     stores,
     products,
@@ -259,6 +312,8 @@ export function useStores() {
     createProduct,
     updateStore,
     deleteStore,
+    updateProduct,
+    deleteProduct,
     refetchStores: fetchStores,
     refetchProducts: fetchProducts,
   };
