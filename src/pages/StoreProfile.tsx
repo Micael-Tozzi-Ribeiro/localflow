@@ -1,5 +1,6 @@
+import { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, MapPin, Phone, Heart, Store as StoreIcon, ImageIcon } from 'lucide-react';
+import { ArrowLeft, MapPin, Phone, Heart, Store as StoreIcon, ImageIcon, X } from 'lucide-react';
 import { Layout } from '@/components/layout/Layout';
 import { useAuth } from '@/hooks/useAuth';
 import { useStores } from '@/hooks/useStores';
@@ -9,6 +10,12 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 const StoreProfile = () => {
   const { id } = useParams();
@@ -18,6 +25,7 @@ const StoreProfile = () => {
   const { toggleFavorite, isFavorite } = useFavorites();
   const { addToCart } = useApp();
   const { toast } = useToast();
+  const [selectedProduct, setSelectedProduct] = useState<any>(null);
 
   const store = stores.find(s => s.id === id);
   const storeProducts = getStoreProducts(id || '');
@@ -196,18 +204,26 @@ const StoreProfile = () => {
                   className="animate-fade-in-up bg-card rounded-xl overflow-hidden shadow-md hover:shadow-lg transition-all"
                   style={{ animationDelay: `${index * 0.05}s` }}
                 >
-                  <div className="relative h-40 bg-muted">
+                  <div 
+                    className="relative h-40 bg-muted cursor-pointer group"
+                    onClick={() => setSelectedProduct(product)}
+                  >
                     {product.image_url ? (
                       <img
                         src={product.image_url}
                         alt={product.name}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
                         <ImageIcon className="h-10 w-10 text-muted-foreground" />
                       </div>
                     )}
+                    <div className="absolute inset-0 bg-foreground/0 group-hover:bg-foreground/10 transition-colors flex items-center justify-center">
+                      <span className="text-background opacity-0 group-hover:opacity-100 transition-opacity text-sm font-medium bg-foreground/70 px-3 py-1 rounded-full">
+                        Ver detalhes
+                      </span>
+                    </div>
                   </div>
                   <div className="p-4">
                     <h3 className="font-semibold text-card-foreground">{product.name}</h3>
@@ -235,6 +251,56 @@ const StoreProfile = () => {
           )}
         </section>
       </div>
+
+      {/* Product Detail Modal */}
+      <Dialog open={!!selectedProduct} onOpenChange={() => setSelectedProduct(null)}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold">{selectedProduct?.name}</DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            {selectedProduct?.image_url ? (
+              <div className="w-full rounded-lg overflow-hidden bg-muted">
+                <img
+                  src={selectedProduct.image_url}
+                  alt={selectedProduct.name}
+                  className="w-full h-auto max-h-[50vh] object-contain"
+                />
+              </div>
+            ) : (
+              <div className="w-full h-64 bg-muted rounded-lg flex items-center justify-center">
+                <ImageIcon className="h-16 w-16 text-muted-foreground" />
+              </div>
+            )}
+            
+            <div className="space-y-3">
+              <p className="text-2xl font-bold text-primary">
+                {selectedProduct && Number(selectedProduct.price).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+              </p>
+              
+              {selectedProduct?.description && (
+                <div>
+                  <h4 className="font-semibold text-foreground mb-1">Descrição</h4>
+                  <p className="text-muted-foreground">{selectedProduct.description}</p>
+                </div>
+              )}
+              
+              {user && !isStoreOwner && (
+                <Button 
+                  className="w-full mt-4" 
+                  onClick={() => {
+                    handleAddToCart(selectedProduct);
+                    setSelectedProduct(null);
+                  }}
+                >
+                  Adicionar ao Carrinho
+                </Button>
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 };
