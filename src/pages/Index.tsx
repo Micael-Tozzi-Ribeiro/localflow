@@ -4,15 +4,76 @@ import { Button } from '@/components/ui/button';
 import { Layout } from '@/components/layout/Layout';
 import { StoreCard } from '@/components/stores/StoreCard';
 import { useApp } from '@/contexts/AppContext';
+import { useEffect, useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { Store as StoreType } from '@/types';
 import heroImage from '@/assets/hero-localflow.jpg';
 
 const Index = () => {
-  const { stores, user } = useApp();
-  
-  // Show stores from user's area or first 4 for demo
-  const displayStores = user 
-    ? stores.filter(s => s.state === user.state && s.neighborhood === user.neighborhood).slice(0, 4)
-    : stores.slice(0, 4);
+  const { user } = useApp();
+  const [featuredStores, setFeaturedStores] = useState<StoreType[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchFeaturedStores = async () => {
+      setIsLoading(true);
+      try {
+        // Build the query to get stores with their favorite counts
+        let query = supabase
+          .from('stores')
+          .select(`
+            *,
+            favorites:favorites(count)
+          `);
+
+        // Filter by user's region if logged in
+        if (user) {
+          query = query
+            .eq('state', user.state)
+            .eq('neighborhood', user.neighborhood);
+        }
+
+        const { data: storesData, error } = await query;
+
+        if (error) {
+          console.error('Error fetching stores:', error);
+          setFeaturedStores([]);
+          return;
+        }
+
+        // Sort by favorite count and take top 4
+        const sortedStores = (storesData || [])
+          .map(store => ({
+            ...store,
+            favoriteCount: store.favorites?.[0]?.count || 0
+          }))
+          .sort((a, b) => b.favoriteCount - a.favoriteCount)
+          .slice(0, 4)
+          .map(store => ({
+            id: store.id,
+            name: store.name,
+            category: store.category,
+            address: store.address,
+            phone: store.phone,
+            description: store.description || undefined,
+            logo: store.logo_url || '',
+            banner: store.banner_url || '',
+            ownerId: store.owner_id,
+            state: store.state,
+            neighborhood: store.neighborhood,
+          }));
+
+        setFeaturedStores(sortedStores);
+      } catch (error) {
+        console.error('Error:', error);
+        setFeaturedStores([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchFeaturedStores();
+  }, [user]);
 
   const features = [
     {
@@ -121,21 +182,38 @@ const Index = () => {
             </Link>
           </div>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {displayStores.map((store, index) => (
-              <div key={store.id} className="animate-fade-in-up" style={{ animationDelay: `${index * 0.1}s` }}>
-                <StoreCard store={store} />
-              </div>
-            ))}
-          </div>
-
-          {displayStores.length === 0 && (
+          {isLoading ? (
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {[...Array(4)].map((_, index) => (
+                <div key={index} className="bg-card rounded-2xl overflow-hidden shadow-md animate-pulse">
+                  <div className="h-32 bg-muted" />
+                  <div className="p-4 space-y-3">
+                    <div className="h-4 bg-muted rounded w-3/4" />
+                    <div className="h-3 bg-muted rounded w-1/2" />
+                    <div className="h-3 bg-muted rounded w-2/3" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : featuredStores.length > 0 ? (
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {featuredStores.map((store, index) => (
+                <div key={store.id} className="animate-fade-in-up" style={{ animationDelay: `${index * 0.1}s` }}>
+                  <StoreCard store={store} />
+                </div>
+              ))}
+            </div>
+          ) : (
             <div className="text-center py-12 bg-muted/30 rounded-2xl">
               <MapPin className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-foreground mb-2">Nenhuma loja na sua região ainda</h3>
-              <p className="text-muted-foreground mb-4">Seja o primeiro a cadastrar sua loja!</p>
+              <h3 className="text-lg font-semibold text-foreground mb-2">
+                {user ? 'Nenhuma loja na sua região ainda' : 'Faça login para ver lojas da sua região'}
+              </h3>
+              <p className="text-muted-foreground mb-4">
+                {user ? 'Seja o primeiro a cadastrar sua loja!' : 'Cadastre-se para descobrir lojas do seu bairro'}
+              </p>
               <Link to="/auth">
-                <Button>Cadastrar Loja</Button>
+                <Button>{user ? 'Cadastrar Loja' : 'Entrar / Cadastrar'}</Button>
               </Link>
             </div>
           )}
