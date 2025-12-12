@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Layout } from '@/components/layout/Layout';
 import { useAuth } from '@/hooks/useAuth';
@@ -84,10 +84,11 @@ const MyStores = () => {
   });
 
   // Redirect if not authenticated or not a merchant
-  if (!authLoading && (!user || profile?.user_type !== 'comerciante')) {
-    navigate('/auth');
-    return null;
-  }
+  useEffect(() => {
+    if (!authLoading && (!user || profile?.user_type !== 'comerciante')) {
+      navigate('/auth');
+    }
+  }, [authLoading, user, profile, navigate]);
 
   if (authLoading || storesLoading) {
     return (
@@ -97,6 +98,10 @@ const MyStores = () => {
         </div>
       </Layout>
     );
+  }
+
+  if (!user || profile?.user_type !== 'comerciante') {
+    return null;
   }
 
   const myStores = getMyStores();
