@@ -108,9 +108,11 @@ Como posso ajudar você hoje?`,
           data.text ||
           data.content ||
           data.result ||
+          data.resposta ||
           (data.json?.output) ||
           (data.json?.response) ||
           (data.json?.message) ||
+          (data.json?.resposta) ||
           '';
       }
       
