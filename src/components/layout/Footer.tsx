@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Facebook, Instagram, Twitter, Mail, Phone, MapPin, MapPinned, Link2, Home, Info, Store, User, Bot, Headphones } from 'lucide-react';
+import { Facebook, Instagram, Twitter, Mail, Phone, MapPin, MapPinned, Link2, Home, Info, Store, User, Bot, Headphones, Share2 } from 'lucide-react';
 
 export function Footer() {
   const currentYear = new Date().getFullYear();
@@ -62,7 +62,10 @@ export function Footer() {
 
           {/* Column 3 - Social */}
           <div>
-            <h4 className="font-semibold text-lg mb-4">Redes Sociais</h4>
+            <h4 className="font-semibold text-lg mb-4 flex items-center gap-2">
+              <Share2 className="h-5 w-5 text-secondary" />
+              Redes Sociais
+            </h4>
             <div className="flex gap-4">
               <a
                 href="#"
