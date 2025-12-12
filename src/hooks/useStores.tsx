@@ -179,6 +179,75 @@ export function useStores() {
     return { data, error };
   };
 
+  const updateStore = async (
+    storeId: string,
+    storeData: {
+      name?: string;
+      category?: string;
+      description?: string;
+      phone?: string;
+      address?: string;
+      logoFile?: File;
+      bannerFile?: File;
+    }
+  ) => {
+    if (!profile) return { error: 'Usuário não autenticado' };
+
+    const updateData: Record<string, unknown> = {};
+
+    if (storeData.name) updateData.name = storeData.name;
+    if (storeData.category) updateData.category = storeData.category;
+    if (storeData.description !== undefined) updateData.description = storeData.description || null;
+    if (storeData.phone) updateData.phone = storeData.phone;
+    if (storeData.address) updateData.address = storeData.address;
+
+    // Upload new logo if provided
+    if (storeData.logoFile) {
+      const logoPath = `${profile.user_id}/logo-${Date.now()}`;
+      const logo_url = await uploadImage(storeData.logoFile, logoPath);
+      if (logo_url) updateData.logo_url = logo_url;
+    }
+
+    // Upload new banner if provided
+    if (storeData.bannerFile) {
+      const bannerPath = `${profile.user_id}/banner-${Date.now()}`;
+      const banner_url = await uploadImage(storeData.bannerFile, bannerPath);
+      if (banner_url) updateData.banner_url = banner_url;
+    }
+
+    const { data, error } = await supabase
+      .from('stores')
+      .update(updateData)
+      .eq('id', storeId)
+      .select()
+      .single();
+
+    if (!error && data) {
+      setStores(prev => prev.map(s => s.id === storeId ? data as DbStore : s));
+    }
+
+    return { data, error };
+  };
+
+  const deleteStore = async (storeId: string) => {
+    if (!profile) return { error: 'Usuário não autenticado' };
+
+    // First delete all products of the store
+    await supabase.from('products').delete().eq('store_id', storeId);
+
+    const { error } = await supabase
+      .from('stores')
+      .delete()
+      .eq('id', storeId);
+
+    if (!error) {
+      setStores(prev => prev.filter(s => s.id !== storeId));
+      setProducts(prev => prev.filter(p => p.store_id !== storeId));
+    }
+
+    return { error };
+  };
+
   return {
     stores,
     products,
@@ -188,6 +257,8 @@ export function useStores() {
     getStoreProducts,
     createStore,
     createProduct,
+    updateStore,
+    deleteStore,
     refetchStores: fetchStores,
     refetchProducts: fetchProducts,
   };
