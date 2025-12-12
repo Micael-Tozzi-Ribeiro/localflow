@@ -252,11 +252,11 @@ const MerchantOrders = () => {
                     </div>
                     <button 
                       onClick={() => openWhatsApp(order.customer_phone, `Olá ${order.customer_name}! Aqui é da loja ${order.store?.name}.`)}
-                      className="flex items-center gap-2 hover:bg-primary/10 rounded-md p-1 -m-1 transition-colors text-left"
+                      className="flex items-center gap-2 hover:bg-secondary/10 rounded-md p-1 -m-1 transition-colors text-left"
                       title="Abrir WhatsApp"
                     >
-                      <Phone className="h-4 w-4 text-green-600" />
-                      <span className="text-sm text-primary underline underline-offset-2">{order.customer_phone}</span>
+                      <Phone className="h-4 w-4 text-secondary" />
+                      <span className="text-sm text-secondary font-medium hover:text-secondary/80">{order.customer_phone}</span>
                     </button>
                     {order.customer_address && (
                       <div className="flex items-center gap-2 sm:col-span-2">
@@ -397,7 +397,7 @@ const MerchantOrders = () => {
                           </p>
                           <button 
                             onClick={() => order.delivery_request?.delivery_person?.phone && openWhatsApp(order.delivery_request.delivery_person.phone, `Olá ${order.delivery_request.delivery_person.name}!`)}
-                            className="text-xs text-primary underline underline-offset-2 hover:text-primary/80 transition-colors"
+                            className="text-xs text-secondary font-medium hover:text-secondary/80 transition-colors"
                             title="Abrir WhatsApp do entregador"
                           >
                             Entregador: {order.delivery_request.delivery_person.name}
@@ -414,7 +414,7 @@ const MerchantOrders = () => {
                           </p>
                           <button 
                             onClick={() => order.delivery_request?.delivery_person?.phone && openWhatsApp(order.delivery_request.delivery_person.phone, `Olá ${order.delivery_request.delivery_person.name}!`)}
-                            className="text-xs text-primary underline underline-offset-2 hover:text-primary/80 transition-colors"
+                            className="text-xs text-secondary font-medium hover:text-secondary/80 transition-colors"
                             title="Abrir WhatsApp do entregador"
                           >
                             Entregue por: {order.delivery_request.delivery_person.name}

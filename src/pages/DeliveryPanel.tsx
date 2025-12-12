@@ -223,10 +223,18 @@ const DeliveryPanel = () => {
                           <User className="h-4 w-4 text-muted-foreground" />
                           <span className="text-foreground">{delivery.customer_name}</span>
                         </div>
-                        <div className="flex items-center gap-2 text-sm">
-                          <Phone className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-foreground">{delivery.customer_phone}</span>
-                        </div>
+                        <button 
+                          className="flex items-center gap-2 text-sm hover:bg-secondary/10 rounded-md p-1 -m-1 transition-colors"
+                          onClick={() => {
+                            const cleanPhone = delivery.customer_phone.replace(/\D/g, '');
+                            const formattedPhone = cleanPhone.startsWith('55') ? cleanPhone : `55${cleanPhone}`;
+                            window.open(`https://wa.me/${formattedPhone}`, '_blank');
+                          }}
+                          title="Abrir WhatsApp"
+                        >
+                          <Phone className="h-4 w-4 text-secondary" />
+                          <span className="text-secondary font-medium hover:text-secondary/80">{delivery.customer_phone}</span>
+                        </button>
                         <div className="flex items-center gap-2 text-sm">
                           <MapPin className="h-4 w-4 text-muted-foreground" />
                           <span className="text-foreground">{delivery.customer_address}</span>
