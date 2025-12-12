@@ -72,35 +72,41 @@ Como posso ajudar você hoje?`,
     setInputValue('');
     setIsLoading(true);
 
-    // Simulate AI response - In production, this would call n8n webhook
-    setTimeout(() => {
-      const responses: Record<string, string> = {
-        'restaurante': 'Na sua região, encontrei algumas opções de restaurantes como o Burguer Local! Eles são conhecidos pelos hambúrgueres artesanais. Quer que eu te mostre mais opções?',
-        'produto': 'Para criar uma boa descrição de produto, inclua: nome atrativo, principais características, benefícios para o cliente e um chamado para ação. Quer que eu crie uma descrição de exemplo?',
-        'entrega': 'Para aceitar uma entrega, vá até o Painel de Entregas. Lá você verá todas as entregas disponíveis na sua região. Clique em "Aceitar Entrega" no pedido desejado.',
-        'popular': 'As lojas mais populares da região incluem Padaria do Zé, Hortifruti Vida Saudável e Pet Amigo. Todas têm ótimas avaliações!',
-        'favoritar': 'Para favoritar uma loja, basta clicar no ícone de coração que aparece no card da loja ou na página do perfil. Suas lojas favoritas ficam salvas para acesso rápido!',
-        'default': 'Entendi! Posso ajudar você com isso. No LocalFlow, conectamos moradores, comerciantes e entregadores do mesmo bairro. Quer saber mais sobre alguma funcionalidade específica?',
-      };
+    try {
+      const response = await fetch('https://micaeltr.app.n8n.cloud/webhook-test/assistente-localflow', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: text,
+          userId: user?.id || null,
+          userType: user?.userType || 'visitante',
+          userName: user?.name || 'Visitante',
+          userRegion: user ? `${user.state} - ${user.neighborhood}` : null,
+        }),
+      });
 
-      let response = responses.default;
-      const lowerText = text.toLowerCase();
+      const data = await response.json();
       
-      if (lowerText.includes('restaurante') || lowerText.includes('comida')) response = responses.restaurante;
-      else if (lowerText.includes('descrição') || lowerText.includes('produto')) response = responses.produto;
-      else if (lowerText.includes('entrega') || lowerText.includes('aceitar')) response = responses.entrega;
-      else if (lowerText.includes('popular') || lowerText.includes('melhor')) response = responses.popular;
-      else if (lowerText.includes('favorit')) response = responses.favoritar;
-
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: response,
+        content: data.output || data.response || data.message || 'Desculpe, não consegui processar sua mensagem. Tente novamente.',
       };
 
       setMessages(prev => [...prev, assistantMessage]);
+    } catch (error) {
+      console.error('Erro ao enviar mensagem:', error);
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: 'Desculpe, houve um erro ao processar sua mensagem. Por favor, tente novamente.',
+      };
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
       setIsLoading(false);
-    }, 1500);
+    }
   };
 
   return (
