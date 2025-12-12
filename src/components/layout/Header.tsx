@@ -33,7 +33,9 @@ export function Header() {
       <div className="container flex h-16 items-center justify-between px-4">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2">
-          <img src={logo} alt="LocalFlow" className="h-10 w-auto" />
+          <div className="h-12 w-12 rounded-full overflow-hidden border-2 border-primary bg-white flex items-center justify-center shadow-md">
+            <img src={logo} alt="LocalFlow" className="h-10 w-10 object-contain" />
+          </div>
         </Link>
 
         {/* Desktop Navigation */}
