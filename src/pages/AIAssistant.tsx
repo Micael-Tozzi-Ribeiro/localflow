@@ -73,7 +73,7 @@ Como posso ajudar você hoje?`,
     setIsLoading(true);
 
     try {
-      const response = await fetch('https://micaeltr.app.n8n.cloud/webhook-test/assistente-localflow', {
+      const response = await fetch('https://micaeltr.app.n8n.cloud/webhook/assistente-localflow', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
