@@ -88,11 +88,41 @@ Como posso ajudar você hoje?`,
       });
 
       const data = await response.json();
+      console.log('Resposta do webhook:', data);
+      
+      // Extrair a resposta do assistente de diferentes estruturas possíveis do n8n
+      let assistantContent = '';
+      
+      if (typeof data === 'string') {
+        assistantContent = data;
+      } else if (Array.isArray(data) && data.length > 0) {
+        // n8n pode retornar um array
+        const firstItem = data[0];
+        assistantContent = firstItem?.output || firstItem?.response || firstItem?.message || firstItem?.text || JSON.stringify(firstItem);
+      } else if (typeof data === 'object' && data !== null) {
+        // Tentar diferentes caminhos possíveis
+        assistantContent = 
+          data.output || 
+          data.response || 
+          data.message || 
+          data.text ||
+          data.content ||
+          data.result ||
+          (data.json?.output) ||
+          (data.json?.response) ||
+          (data.json?.message) ||
+          '';
+      }
+      
+      if (!assistantContent) {
+        console.error('Estrutura de resposta não reconhecida:', data);
+        assistantContent = 'Desculpe, não consegui processar a resposta. Tente novamente.';
+      }
       
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: data.output || data.response || data.message || 'Desculpe, não consegui processar sua mensagem. Tente novamente.',
+        content: assistantContent,
       };
 
       setMessages(prev => [...prev, assistantMessage]);
