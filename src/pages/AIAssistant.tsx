@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Layout } from '@/components/layout/Layout';
 import { useApp } from '@/contexts/AppContext';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Bot, Send, User, Sparkles, Store, Truck, Users, ArrowRight } from 'lucide-react';
@@ -73,22 +74,22 @@ Como posso ajudar você hoje?`,
     setIsLoading(true);
 
     try {
-      const response = await fetch('https://micaeltr.app.n8n.cloud/webhook/assistente-localflow', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+      const { data, error } = await supabase.functions.invoke('ai-assistant-proxy', {
+        body: {
           message: text,
           userId: user?.id || null,
           userType: user?.userType || 'visitante',
           userName: user?.name || 'Visitante',
           userRegion: user ? `${user.state} - ${user.neighborhood}` : null,
-        }),
+        },
       });
 
-      const data = await response.json();
-      console.log('Resposta do webhook:', data);
+      if (error) {
+        console.error('Erro na função de backend do assistente:', error);
+        throw error;
+      }
+
+      console.log('Resposta do backend do assistente:', data);
       
       // Extrair a resposta do assistente de diferentes estruturas possíveis do n8n
       let assistantContent = '';
